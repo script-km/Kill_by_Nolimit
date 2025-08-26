@@ -179,7 +179,7 @@ Tab:CreateToggle({
 -- Auto Rejoin loop
 task.spawn(function()
     while true do
-        task.wait(30)
+        task.wait(60)
         if RejoinEnabled then
             TeleportService:Teleport(game.PlaceId, LocalPlayer)
         end

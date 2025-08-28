@@ -8,7 +8,7 @@ local HttpService = game:GetService("HttpService")
 -- Rayfield GUI
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-    Name = "Killing only☠️",
+    Name = "Killing only☠️ / by Khem",
     LoadingTitle = "By khem",
     LoadingSubtitle = "MUSCLE LEGENDS 💪",
 })
@@ -18,6 +18,7 @@ local Tab = Window:CreateTab("Main", 4483362458)
 -- Vars
 local AutoKillEnabled = false
 local autoSizeLoop
+local serverHopLoop
 local LockPosition = CFrame.new(-31.8626, 6.0588, 2087.8867)
 
 -- File memory setup (Mode 1)
@@ -59,25 +60,6 @@ local function DoPunch()
     end
 end
 
--- ====== Friend Whitelist ======
-local WhitelistFriends = true -- turn to false if you don’t want this
-local FriendIds = {}
-
-local function LoadFriends()
-    pcall(function()
-        local success, pages = pcall(function()
-            return Players:GetFriendsAsync(LocalPlayer.UserId)
-        end)
-        if success and pages then
-            for _, friend in ipairs(pages:GetCurrentPage()) do
-                FriendIds[friend.Id] = true
-            end
-        end
-    end)
-end
-LoadFriends()
--- ==============================
-
 local function AutoKillLoop(lockPosition)
     task.spawn(function()
         while AutoKillEnabled do
@@ -93,15 +75,12 @@ local function AutoKillLoop(lockPosition)
                 if rHand and lHand then
                     for _, target in ipairs(Players:GetPlayers()) do
                         if target ~= LocalPlayer and target.Character then
-                            -- Skip whitelisted friends
-                            if not (WhitelistFriends and FriendIds[target.UserId]) then
-                                local root = target.Character:FindFirstChild("HumanoidRootPart")
-                                if root then
-                                    firetouchinterest(rHand, root, 1)
-                                    firetouchinterest(lHand, root, 1)
-                                    firetouchinterest(rHand, root, 0)
-                                    firetouchinterest(lHand, root, 0)
-                                end
+                            local root = target.Character:FindFirstChild("HumanoidRootPart")
+                            if root then
+                                firetouchinterest(rHand, root, 1)
+                                firetouchinterest(lHand, root, 1)
+                                firetouchinterest(rHand, root, 0)
+                                firetouchinterest(lHand, root, 0)
                             end
                         end
                     end
@@ -125,7 +104,46 @@ local function StartAutoSizeNaN()
 end
 
 local function StopAutoSizeNaN()
-    if autoSizeLoop then task.cancel(autoSizeLoop) autoSizeLoop = nil end
+    if autoSizeLoop then
+        task.cancel(autoSizeLoop)
+        autoSizeLoop = nil
+    end
+end
+
+-- Server hop loop (only runs when enabled)
+local function StartServerHopLoop()
+    if serverHopLoop then return end
+    serverHopLoop = task.spawn(function()
+        while AutoKillEnabled do
+            task.wait(60)
+            pcall(function()
+                local servers = {}
+                local cursor = ""
+                local gameId = 3623096087
+
+                repeat
+                    local response = game:HttpGet(
+                        "https://games.roblox.com/v1/games/"..gameId.."/servers/Public?sortOrder=Asc&limit=100"..(cursor ~= "" and "&cursor="..cursor or "")
+                    )
+                    local data = HttpService:JSONDecode(response)
+                    for _, server in ipairs(data.data) do
+                        if server.playing >= 15 and server.playing <= 20 and server.id ~= game.JobId then
+                            TeleportService:TeleportToPlaceInstance(gameId, server.id, LocalPlayer)
+                            return
+                        end
+                    end
+                    cursor = data.nextPageCursor or ""
+                until cursor == "" or not cursor
+            end)
+        end
+    end)
+end
+
+local function StopServerHopLoop()
+    if serverHopLoop then
+        task.cancel(serverHopLoop)
+        serverHopLoop = nil
+    end
 end
 
 -- GUI Toggles
@@ -138,9 +156,11 @@ Tab:CreateToggle({
             AutoKillEnabled = true
             AutoKillLoop(LockPosition)
             StartAutoSizeNaN()
+            StartServerHopLoop()
         else
             AutoKillEnabled = false
             StopAutoSizeNaN()
+            StopServerHopLoop()
         end
     end,
 })
@@ -173,35 +193,10 @@ Tab:CreateToggle({
     end,
 })
 
--- Auto join specific servers every 60 sec (15–20 players)
-task.spawn(function()
-    while true do
-        task.wait(60)
-        pcall(function()
-            local servers = {}
-            local cursor = ""
-            local gameId = 3623096087
-
-            repeat
-                local response = game:HttpGet(
-                    "https://games.roblox.com/v1/games/"..gameId.."/servers/Public?sortOrder=Asc&limit=100"..(cursor ~= "" and "&cursor="..cursor or "")
-                )
-                local data = HttpService:JSONDecode(response)
-                for _, server in ipairs(data.data) do
-                    if server.playing >= 15 and server.playing <= 20 and server.id ~= game.JobId then
-                        TeleportService:TeleportToPlaceInstance(gameId, server.id, LocalPlayer)
-                        return
-                    end
-                end
-                cursor = data.nextPageCursor or ""
-            until cursor == "" or not cursor
-        end)
-    end
-end)
-
 -- Auto-enable Mode 1 if memory says ON
 if MemoryState then
     AutoKillEnabled = true
     AutoKillLoop(LockPosition)
     StartAutoSizeNaN()
+    StartServerHopLoop()
 end

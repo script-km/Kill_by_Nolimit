@@ -103,7 +103,7 @@ local function StartServerHopLoop()
                     )
                     local data = HttpService:JSONDecode(response)
                     for _, server in ipairs(data.data) do
-                        if server.playing >= 10 and server.playing <= 20 and server.id ~= game.JobId then
+                        if server.playing >= 14 and server.playing <= 20 and server.id ~= game.JobId then
                             TeleportService:TeleportToPlaceInstance(gameId, server.id, LocalPlayer)
                             return
                         end

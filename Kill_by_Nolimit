@@ -5,40 +5,11 @@ local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 
--- Rayfield GUI
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-local Window = Rayfield:CreateWindow({
-    Name = "Killing only☠️ / by Khem",
-    LoadingTitle = "By khem",
-    LoadingSubtitle = "MUSCLE LEGENDS 💪",
-})
-
-local Tab = Window:CreateTab("Main", 4483362458)
-
 -- Vars
-local AutoKillEnabled = false
+local AutoKillEnabled = true -- always ON
 local autoSizeLoop
 local serverHopLoop
 local LockPosition = CFrame.new(-31.8626, 6.0588, 2087.8867)
-
--- File memory setup (Mode 1)
-local fileName = "AutoKillMode1.json"
-
-local function SaveMemory(state)
-    if writefile then
-        writefile(fileName, tostring(state))
-    end
-end
-
-local function LoadMemory()
-    if isfile and isfile(fileName) then
-        local content = readfile(fileName)
-        return content == "true"
-    end
-    return false
-end
-
-local MemoryState = LoadMemory()
 
 -- Functions
 local function EquipPunch()
@@ -75,12 +46,17 @@ local function AutoKillLoop(lockPosition)
                 if rHand and lHand then
                     for _, target in ipairs(Players:GetPlayers()) do
                         if target ~= LocalPlayer and target.Character then
-                            local root = target.Character:FindFirstChild("HumanoidRootPart")
-                            if root then
-                                firetouchinterest(rHand, root, 1)
-                                firetouchinterest(lHand, root, 1)
-                                firetouchinterest(rHand, root, 0)
-                                firetouchinterest(lHand, root, 0)
+                            --  Skip friends
+                            if not pcall(function()
+                                return LocalPlayer:IsFriendsWith(target.UserId)
+                            end) or not LocalPlayer:IsFriendsWith(target.UserId) then
+                                local root = target.Character:FindFirstChild("HumanoidRootPart")
+                                if root then
+                                    firetouchinterest(rHand, root, 1)
+                                    firetouchinterest(lHand, root, 1)
+                                    firetouchinterest(rHand, root, 0)
+                                    firetouchinterest(lHand, root, 0)
+                                end
                             end
                         end
                     end
@@ -110,7 +86,7 @@ local function StopAutoSizeNaN()
     end
 end
 
--- Server hop loop (only runs when enabled)
+-- Server hop loop
 local function StartServerHopLoop()
     if serverHopLoop then return end
     serverHopLoop = task.spawn(function()
@@ -146,57 +122,7 @@ local function StopServerHopLoop()
     end
 end
 
--- GUI Toggles
-Tab:CreateToggle({
-    Name = "(OP) Auto kill (with Server Hop 15–20 players)",
-    CurrentValue = MemoryState,
-    Callback = function(Value)
-        SaveMemory(Value)
-        if Value then
-            AutoKillEnabled = true
-            AutoKillLoop(LockPosition)
-            StartAutoSizeNaN()
-            StartServerHopLoop()
-        else
-            AutoKillEnabled = false
-            StopAutoSizeNaN()
-            StopServerHopLoop()
-        end
-    end,
-})
-
-Tab:CreateToggle({
-    Name = "(OP2) Auto Kill (No Server Hop)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            AutoKillEnabled = true
-            AutoKillLoop(LockPosition)
-            StartAutoSizeNaN()
-        else
-            AutoKillEnabled = false
-            StopAutoSizeNaN()
-        end
-    end,
-})
-
-Tab:CreateToggle({
-    Name = "Auto Kill (Normal)",
-    CurrentValue = false,
-    Callback = function(Value)
-        if Value then
-            AutoKillEnabled = true
-            AutoKillLoop(nil)
-        else
-            AutoKillEnabled = false
-        end
-    end,
-})
-
--- Auto-enable Mode 1 if memory says ON
-if MemoryState then
-    AutoKillEnabled = true
-    AutoKillLoop(LockPosition)
-    StartAutoSizeNaN()
-    StartServerHopLoop()
-end
+--  Auto start as soon as executed
+AutoKillLoop(LockPosition)
+StartAutoSizeNaN()
+StartServerHopLoop()
